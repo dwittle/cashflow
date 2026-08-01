@@ -12,7 +12,13 @@ module.exports = {
     },
     port: 3000,
     hot: true,
-    historyApiFallback: true
+    historyApiFallback: true,
+    proxy: [
+      {
+        context: ['/api'],
+        target: 'http://localhost:3001'
+      }
+    ]
   },
   module: {
     rules: [
@@ -31,7 +37,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js', '.jsx']
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist/public'),
     filename: 'renderer.js'
   },
   plugins: [
