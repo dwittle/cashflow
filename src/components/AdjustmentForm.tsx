@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Adjustment } from '../types';
+import { formatDate } from '../utils/calculations';
 
 type AdjustmentType = 'expense' | 'income' | 'set';
 
@@ -113,7 +114,7 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
                 <div className="list-item-info">
                   <div className="list-item-name">{adj.name}</div>
                   <div className="list-item-details">
-                    {new Date(adj.date).toLocaleDateString()}
+                    {formatDate(adj.date)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

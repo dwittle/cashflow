@@ -80,12 +80,18 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
-              tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              tickFormatter={(dateStr) => {
+                const [y, m, d] = dateStr.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              }}
             />
             <YAxis tickFormatter={(value) => `$${value}`} />
             <Tooltip
               formatter={(value: number) => [`$${value.toFixed(2)}`, 'Balance']}
-              labelFormatter={(date) => new Date(date).toLocaleDateString()}
+              labelFormatter={(dateStr) => {
+                const [y, m, d] = dateStr.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString();
+              }}
             />
             <Legend />
             <Line type="monotone" dataKey="balance" stroke="#3498db" strokeWidth={2} dot={false} />

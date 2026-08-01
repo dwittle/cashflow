@@ -1,5 +1,6 @@
 import React from 'react';
 import { Transaction } from '../types';
+import { formatDate } from '../utils/calculations';
 
 interface Props {
   transactions: Transaction[];
@@ -7,7 +8,7 @@ interface Props {
 
 function TransactionList({ transactions }: Props) {
   const sortedTransactions = [...transactions].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+    b.date.localeCompare(a.date)
   );
 
   return (
@@ -22,7 +23,7 @@ function TransactionList({ transactions }: Props) {
               <div className="list-item-info">
                 <div className="list-item-name">{t.name}</div>
                 <div className="list-item-details">
-                  {new Date(t.date).toLocaleDateString()} - {t.type}
+                  {formatDate(t.date)} - {t.type}
                 </div>
               </div>
               <div className={t.amount >= 0 ? 'amount-positive' : 'amount-negative'}>

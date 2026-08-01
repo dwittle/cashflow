@@ -4,6 +4,17 @@ function toLocalDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+// Parse a YYYY-MM-DD string as local midnight (not UTC midnight)
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// Display a stored YYYY-MM-DD date string in local time
+export function formatDate(dateStr: string): string {
+  return parseLocalDate(dateStr).toLocaleDateString();
+}
+
 export function calculateProjectedBalances(
   startingBalance: number,
   startDate: Date,
@@ -59,7 +70,7 @@ function generateAllTransactions(
   // Generate income transactions
   income.filter(inc => inc.is_active).forEach(inc => {
     if (inc.frequency === 'weekly' || inc.frequency === 'bi-weekly') {
-      const incomeDate = new Date(inc.start_date!);
+      const incomeDate = parseLocalDate(inc.start_date!);
       let currentDate = new Date(incomeDate);
       const dayInterval = inc.frequency === 'weekly' ? 7 : 14;
 
@@ -163,7 +174,7 @@ export function getNextIncomeDate(income: Income[]): Date | null {
 
   income.filter(inc => inc.is_active).forEach(inc => {
     if (inc.frequency === 'weekly' || inc.frequency === 'bi-weekly') {
-      const startDate = new Date(inc.start_date!);
+      const startDate = parseLocalDate(inc.start_date!);
       let currentDate = new Date(startDate);
       const dayInterval = inc.frequency === 'weekly' ? 7 : 14;
 

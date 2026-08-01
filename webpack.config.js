@@ -7,6 +7,9 @@ module.exports = [
     mode: 'development',
     entry: './electron/main.ts',
     target: 'electron-main',
+    externals: {
+      'better-sqlite3': 'commonjs better-sqlite3'
+    },
     module: {
       rules: [
         {
