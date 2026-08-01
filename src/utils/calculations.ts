@@ -90,10 +90,14 @@ function generateAllTransactions(
       // Parse fixed dates (e.g., "1,15")
       const days = inc.fixed_dates!.split(',').map(d => parseInt(d.trim())).filter(d => d >= 1 && d <= 31);
 
-      const currentDate = new Date(startDate);
-      while (toLocalDateStr(currentDate) <= endStr) {
+      let year = startDate.getFullYear();
+      let month = startDate.getMonth();
+      while (true) {
+        const sentinel = getDayOfMonth(year, month, 1);
+        if (toLocalDateStr(sentinel) > endStr) break;
+
         days.forEach(day => {
-          const paymentDate = getDayOfMonth(currentDate.getFullYear(), currentDate.getMonth(), day);
+          const paymentDate = getDayOfMonth(year, month, day);
           const dateStr = toLocalDateStr(paymentDate);
 
           if (dateStr >= startStr && dateStr <= endStr) {
@@ -106,20 +110,24 @@ function generateAllTransactions(
           }
         });
 
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        month++;
+        if (month > 11) { month = 0; year++; }
       }
     }
   });
 
   // Generate bill transactions (monthly)
   bills.filter(bill => bill.is_active).forEach(bill => {
-    const currentDate = new Date(startDate);
+    let year = startDate.getFullYear();
+    let month = startDate.getMonth();
 
-    while (toLocalDateStr(currentDate) <= endStr) {
-      const billDate = getDayOfMonth(currentDate.getFullYear(), currentDate.getMonth(), bill.due_day);
+    while (true) {
+      const billDate = getDayOfMonth(year, month, bill.due_day);
       const dateStr = toLocalDateStr(billDate);
 
-      if (dateStr >= startStr && dateStr <= endStr) {
+      if (dateStr > endStr) break;
+
+      if (dateStr >= startStr) {
         transactions.push({
           date: dateStr,
           name: bill.name,
@@ -128,7 +136,8 @@ function generateAllTransactions(
         });
       }
 
-      currentDate.setMonth(currentDate.getMonth() + 1);
+      month++;
+      if (month > 11) { month = 0; year++; }
     }
   });
 
