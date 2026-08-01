@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Adjustment } from '../types';
 
+type AdjustmentType = 'expense' | 'income' | 'set';
+
 interface Props {
   adjustments: Adjustment[];
   onUpdate: () => void;
@@ -10,18 +12,36 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
-  const [isExpense, setIsExpense] = useState(true);
+  const [type, setType] = useState<AdjustmentType>('expense');
+
+  const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+
+  const handleTypeChange = (newType: AdjustmentType) => {
+    setType(newType);
+    if (newType === 'set' && !date) setDate(today);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !amount || !date) return;
 
-    const adjustmentAmount = isExpense ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount));
+    let adjustmentAmount: number;
+    let isSetBalance = 0;
+
+    if (type === 'set') {
+      adjustmentAmount = Math.abs(parseFloat(amount));
+      isSetBalance = 1;
+    } else if (type === 'expense') {
+      adjustmentAmount = -Math.abs(parseFloat(amount));
+    } else {
+      adjustmentAmount = Math.abs(parseFloat(amount));
+    }
 
     await window.electron.adjustments.create({
       name,
       amount: adjustmentAmount,
-      date
+      date,
+      is_set_balance: isSetBalance
     });
 
     setName('');
@@ -52,13 +72,14 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
           </div>
           <div className="form-group">
             <label>Type</label>
-            <select value={isExpense ? 'expense' : 'income'} onChange={(e) => setIsExpense(e.target.value === 'expense')}>
+            <select value={type} onChange={(e) => handleTypeChange(e.target.value as AdjustmentType)}>
               <option value="expense">Expense</option>
               <option value="income">Income</option>
+              <option value="set">Set Balance</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Amount</label>
+            <label>{type === 'set' ? 'New Balance' : 'Amount'}</label>
             <input
               type="number"
               step="0.01"
@@ -96,9 +117,10 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div className={adj.amount >= 0 ? 'amount-positive' : 'amount-negative'}>
-                    ${Math.abs(adj.amount).toFixed(2)}
-                    {adj.amount >= 0 ? ' (income)' : ' (expense)'}
+                  <div className={adj.is_set_balance ? 'amount-positive' : adj.amount >= 0 ? 'amount-positive' : 'amount-negative'}>
+                    {adj.is_set_balance
+                      ? `set to $${adj.amount.toFixed(2)}`
+                      : `$${Math.abs(adj.amount).toFixed(2)} (${adj.amount >= 0 ? 'income' : 'expense'})`}
                   </div>
                   <button
                     className="btn btn-danger"

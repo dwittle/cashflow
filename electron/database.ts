@@ -39,9 +39,16 @@ export function initDatabase() {
       name TEXT NOT NULL,
       amount REAL NOT NULL,
       date TEXT NOT NULL,
+      is_set_balance INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  try {
+    db.exec('ALTER TABLE adjustments ADD COLUMN is_set_balance INTEGER DEFAULT 0');
+  } catch {
+    // column already exists
+  }
 
   console.log('Database initialized at:', dbPath);
 }
@@ -116,8 +123,8 @@ export const adjustmentOps = {
 
   create(adjustment: Omit<Adjustment, 'id' | 'created_at'>): number {
     const result = db.prepare(
-      'INSERT INTO adjustments (name, amount, date) VALUES (?, ?, ?)'
-    ).run(adjustment.name, adjustment.amount, adjustment.date);
+      'INSERT INTO adjustments (name, amount, date, is_set_balance) VALUES (?, ?, ?, ?)'
+    ).run(adjustment.name, adjustment.amount, adjustment.date, adjustment.is_set_balance ?? 0);
     return result.lastInsertRowid as number;
   },
 

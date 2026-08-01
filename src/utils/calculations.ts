@@ -1,5 +1,9 @@
 import { Income, Bill, Adjustment, DailyBalance, Transaction } from '../types';
 
+function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export function calculateProjectedBalances(
   startingBalance: number,
   startDate: Date,
@@ -17,11 +21,15 @@ export function calculateProjectedBalances(
   const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(currentDate);
     const dayTransactions = transactionsByDate.get(dateStr) || [];
 
     dayTransactions.forEach(t => {
-      currentBalance += t.amount;
+      if (t.is_set_balance) {
+        currentBalance = t.amount;
+      } else {
+        currentBalance += t.amount;
+      }
       t.balance = currentBalance;
     });
 
@@ -45,6 +53,8 @@ function generateAllTransactions(
   adjustments: Adjustment[]
 ): Transaction[] {
   const transactions: Transaction[] = [];
+  const startStr = toLocalDateStr(startDate);
+  const endStr = toLocalDateStr(endDate);
 
   // Generate income transactions
   income.filter(inc => inc.is_active).forEach(inc => {
@@ -53,10 +63,11 @@ function generateAllTransactions(
       let currentDate = new Date(incomeDate);
       const dayInterval = inc.frequency === 'weekly' ? 7 : 14;
 
-      while (currentDate <= endDate) {
-        if (currentDate >= startDate) {
+      while (toLocalDateStr(currentDate) <= endStr) {
+        const dateStr = toLocalDateStr(currentDate);
+        if (dateStr >= startStr) {
           transactions.push({
-            date: currentDate.toISOString().split('T')[0],
+            date: dateStr,
             name: inc.name,
             amount: inc.amount,
             type: 'income'
@@ -69,13 +80,14 @@ function generateAllTransactions(
       const days = inc.fixed_dates!.split(',').map(d => parseInt(d.trim())).filter(d => d >= 1 && d <= 31);
 
       const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
+      while (toLocalDateStr(currentDate) <= endStr) {
         days.forEach(day => {
           const paymentDate = getDayOfMonth(currentDate.getFullYear(), currentDate.getMonth(), day);
+          const dateStr = toLocalDateStr(paymentDate);
 
-          if (paymentDate >= startDate && paymentDate <= endDate) {
+          if (dateStr >= startStr && dateStr <= endStr) {
             transactions.push({
-              date: paymentDate.toISOString().split('T')[0],
+              date: dateStr,
               name: inc.name,
               amount: inc.amount,
               type: 'income'
@@ -92,12 +104,13 @@ function generateAllTransactions(
   bills.filter(bill => bill.is_active).forEach(bill => {
     const currentDate = new Date(startDate);
 
-    while (currentDate <= endDate) {
+    while (toLocalDateStr(currentDate) <= endStr) {
       const billDate = getDayOfMonth(currentDate.getFullYear(), currentDate.getMonth(), bill.due_day);
+      const dateStr = toLocalDateStr(billDate);
 
-      if (billDate >= startDate && billDate <= endDate) {
+      if (dateStr >= startStr && dateStr <= endStr) {
         transactions.push({
-          date: billDate.toISOString().split('T')[0],
+          date: dateStr,
           name: bill.name,
           amount: -bill.amount,
           type: 'bill'
@@ -110,13 +123,13 @@ function generateAllTransactions(
 
   // Add manual adjustments
   adjustments.forEach(adj => {
-    const adjDate = new Date(adj.date);
-    if (adjDate >= startDate && adjDate <= endDate) {
+    if (adj.date >= startStr && adj.date <= endStr) {
       transactions.push({
         date: adj.date,
         name: adj.name,
         amount: adj.amount,
-        type: 'adjustment'
+        type: 'adjustment',
+        is_set_balance: adj.is_set_balance
       });
     }
   });

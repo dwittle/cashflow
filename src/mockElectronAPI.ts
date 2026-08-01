@@ -94,6 +94,7 @@ export const mockElectronAPI: ElectronAPI = {
     create: async (adjustment) => {
       const newAdjustment = {
         ...adjustment,
+        is_set_balance: adjustment.is_set_balance ?? 0,
         id: idCounter.adjustments++,
         created_at: new Date().toISOString()
       };

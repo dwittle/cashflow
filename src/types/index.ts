@@ -21,6 +21,7 @@ export interface Adjustment {
   name: string;
   amount: number;
   date: string;
+  is_set_balance?: number;
   created_at?: string;
 }
 
@@ -29,6 +30,7 @@ export interface Transaction {
   name: string;
   amount: number;
   type: 'income' | 'bill' | 'adjustment';
+  is_set_balance?: number;
   balance?: number;
 }
 
