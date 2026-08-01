@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Income, Bill, Adjustment } from '../types';
 import { calculateProjectedBalances, getNextIncomeDate, getUpcomingBills } from '../utils/calculations';
+import BalanceCalendar from './BalanceCalendar';
 
 interface Props {
   startingBalance: number;
@@ -12,25 +13,17 @@ interface Props {
 }
 
 function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustments }: Props) {
-  const projectedData = useMemo(() => {
+  const dailyBalances = useMemo(() => {
     const today = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 90);
-
-    const dailyBalances = calculateProjectedBalances(
-      startingBalance,
-      today,
-      endDate,
-      income,
-      bills,
-      adjustments
-    );
-
-    return dailyBalances.map(day => ({
-      date: day.date,
-      balance: parseFloat(day.balance.toFixed(2))
-    }));
+    return calculateProjectedBalances(startingBalance, today, endDate, income, bills, adjustments);
   }, [startingBalance, income, bills, adjustments]);
+
+  const projectedData = useMemo(() =>
+    dailyBalances.map(day => ({ date: day.date, balance: parseFloat(day.balance.toFixed(2)) })),
+    [dailyBalances]
+  );
 
   const currentBalance = projectedData[0]?.balance || startingBalance;
   const nextIncome = getNextIncomeDate(income);
@@ -99,6 +92,8 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      <BalanceCalendar data={dailyBalances} />
 
       {upcomingBills.length > 0 && (
         <div className="card">
