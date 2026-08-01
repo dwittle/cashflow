@@ -1,0 +1,75 @@
+{
+  "name": "cashflow-tracker",
+  "version": "1.0.0",
+  "description": "Personal cash flow tracking app with bi-weekly income and monthly bills",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "start": "npm run build && electron .",
+    "dev": "webpack serve --config webpack.browser.config.js --open",
+    "dev:electron": "concurrently \"npm run watch\" \"npm run electron:dev\"",
+    "watch": "webpack --config webpack.config.js --watch",
+    "electron:dev": "wait-on dist/index.html && electron .",
+    "build": "webpack --config webpack.config.js",
+    "build:browser": "webpack --config webpack.browser.config.js",
+    "package": "npm run build && electron-builder",
+    "clean": "rm -rf dist"
+  },
+  "build": {
+    "appId": "com.cashflow.tracker",
+    "productName": "CashFlow Tracker",
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.finance"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "keywords": [
+    "finance",
+    "cash-flow",
+    "electron",
+    "personal-finance"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "concurrently": "^8.2.2",
+    "css-loader": "^7.1.2",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "html-webpack-plugin": "^5.6.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.5.3",
+    "wait-on": "^7.2.0",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^6.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true,
+    "electron@31.7.7": true
+  }
+}
