@@ -8,6 +8,7 @@
     "dev": "webpack serve --config webpack.browser.config.js --open",
     "dev:electron": "concurrently \"npm run watch\" \"npm run electron:dev\"",
     "dev:server": "concurrently \"tsc --project tsconfig.server.json --watch\" \"npm run dev\"",
+    "dev:full": "concurrently \"tsc --project tsconfig.server.json --watch\" \"npm run dev\" \"wait-on dist/server/server/server.js && npm run start:server\"",
     "watch": "webpack --config webpack.config.js --watch",
     "electron:dev": "wait-on dist/index.html && electron .",
     "build": "webpack --config webpack.config.js",
