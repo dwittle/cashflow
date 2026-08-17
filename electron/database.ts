@@ -1,13 +1,24 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { app } from 'electron';
+import os from 'os';
+import fs from 'fs';
 import { Income, Bill, Adjustment } from '../src/types';
 
 let db: Database.Database;
 
+// Shares the same on-disk database as server/database.ts (the Express/web app)
+// so the Electron app and the browser app always see the same data.
+function getDbPath(): string {
+  const appDataPath = process.env.APPDATA || path.join(os.homedir(), '.config');
+  const dir = path.join(appDataPath, 'CashFlow Tracker');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return path.join(dir, 'cashflow.db');
+}
+
 export function initDatabase() {
-  const userDataPath = app.getPath('userData');
-  const dbPath = path.join(userDataPath, 'cashflow.db');
+  const dbPath = process.env.DB_PATH || getDbPath();
 
   db = new Database(dbPath);
 

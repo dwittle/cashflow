@@ -17,7 +17,7 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../index.html'));
 
-  if (process.env.NODE_ENV === 'development') {
+  if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
 
