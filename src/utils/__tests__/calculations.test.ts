@@ -2,6 +2,7 @@ import {
   calculateProjectedBalances,
   getNextIncomeDate,
   getUpcomingBills,
+  getNextBillDueDate,
   formatDate,
 } from '../calculations';
 import { Income, Bill, Adjustment, DailyBalance } from '../../types';
@@ -247,6 +248,43 @@ describe('calculateProjectedBalances', () => {
       const inactive: Bill = { ...bill(15), is_active: 0 };
       const r = run(2000, d(2026, 8, 1), d(2026, 8, 31), [], [inactive]);
       expect(balanceOn(r, '2026-08-15')).toBe(2000);
+    });
+  });
+
+  // ── next-instance overrides (mark paid / adjust amount) ────────────────────
+
+  describe('bill next-instance overrides', () => {
+    it('skips the transaction on the overridden date when next_paid is set', () => {
+      const paidBill: Bill = { ...bill(15), next_due_date: '2026-08-15', next_paid: 1 };
+      const r = run(2000, d(2026, 8, 1), d(2026, 8, 31), [], [paidBill]);
+      expect(txOn(r, '2026-08-15')).toHaveLength(0);
+      expect(balanceOn(r, '2026-08-15')).toBe(2000);
+    });
+
+    it('only skips the paid occurrence, not later months', () => {
+      const paidBill: Bill = { ...bill(15), next_due_date: '2026-08-15', next_paid: 1 };
+      const r = run(5000, d(2026, 8, 1), d(2026, 9, 30), [], [paidBill]);
+      expect(balanceOn(r, '2026-08-15')).toBe(5000); // skipped
+      expect(balanceOn(r, '2026-09-15')).toBe(4000); // normal deduction resumes
+    });
+
+    it('uses next_amount instead of amount on the overridden date', () => {
+      const adjustedBill: Bill = { ...bill(15, 1000), next_due_date: '2026-08-15', next_amount: 250 };
+      const r = run(2000, d(2026, 8, 1), d(2026, 8, 31), [], [adjustedBill]);
+      expect(balanceOn(r, '2026-08-15')).toBe(1750);
+    });
+
+    it('reverts to the normal amount the following month', () => {
+      const adjustedBill: Bill = { ...bill(15, 1000), next_due_date: '2026-08-15', next_amount: 250 };
+      const r = run(5000, d(2026, 8, 1), d(2026, 9, 30), [], [adjustedBill]);
+      expect(balanceOn(r, '2026-08-15')).toBe(4750); // overridden amount
+      expect(balanceOn(r, '2026-09-15')).toBe(3750); // back to normal 1000
+    });
+
+    it('ignores a stale next_due_date that does not match the occurrence being generated', () => {
+      const staleOverride: Bill = { ...bill(15, 1000), next_due_date: '2026-07-15', next_paid: 1 };
+      const r = run(2000, d(2026, 8, 1), d(2026, 8, 31), [], [staleOverride]);
+      expect(balanceOn(r, '2026-08-15')).toBe(1000); // normal deduction, override was for a different date
     });
   });
 
@@ -524,6 +562,40 @@ describe('getUpcomingBills', () => {
 
   it('returns empty array when no bills', () => {
     expect(getUpcomingBills([])).toHaveLength(0);
+  });
+});
+
+// ─── getNextBillDueDate ───────────────────────────────────────────────────────
+
+describe('getNextBillDueDate', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 7, 5)); // Aug 5, midnight
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('returns this month\'s due date when it has not passed yet', () => {
+    const result = getNextBillDueDate(bill(15));
+    expect(result).toEqual(new Date(2026, 7, 15));
+  });
+
+  it('returns today when the bill is due today', () => {
+    const result = getNextBillDueDate(bill(5));
+    expect(result).toEqual(new Date(2026, 7, 5));
+  });
+
+  it('rolls over to next month when this month\'s due date already passed', () => {
+    const result = getNextBillDueDate(bill(1));
+    expect(result).toEqual(new Date(2026, 8, 1));
+  });
+
+  it('clamps the rolled-over month to its last valid day', () => {
+    // Today Jan 31: due day 30 already passed in January (clamps to Jan 30), so it
+    // rolls into February, which only has 28 days in 2026 → clamps to Feb 28.
+    jest.setSystemTime(new Date(2026, 0, 31));
+    const result = getNextBillDueDate(bill(30));
+    expect(result).toEqual(new Date(2026, 1, 28));
   });
 });
 

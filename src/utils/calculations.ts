@@ -1,6 +1,6 @@
 import { Income, Bill, Adjustment, DailyBalance, Transaction } from '../types';
 
-function toLocalDateStr(date: Date): string {
+export function toLocalDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
@@ -128,12 +128,20 @@ function generateAllTransactions(
       if (dateStr > endStr) break;
 
       if (dateStr >= startStr) {
-        transactions.push({
-          date: dateStr,
-          name: bill.name,
-          amount: -bill.amount,
-          type: 'bill'
-        });
+        // next_due_date/next_amount/next_paid apply only to the single occurrence
+        // they were set for — everything else uses the bill's normal amount.
+        const isOverriddenInstance = !!bill.next_due_date && bill.next_due_date === dateStr;
+        const isPaid = isOverriddenInstance && !!bill.next_paid;
+
+        if (!isPaid) {
+          const amount = isOverriddenInstance && bill.next_amount != null ? bill.next_amount : bill.amount;
+          transactions.push({
+            date: dateStr,
+            name: bill.name,
+            amount: -amount,
+            type: 'bill'
+          });
+        }
       }
 
       month++;
@@ -214,6 +222,26 @@ export function getNextIncomeDate(income: Income[]): Date | null {
   });
 
   return nextDate;
+}
+
+// The next occurrence of a bill's due day from today onward (rolling into next
+// month if this month's due day has already passed). This is the occurrence
+// that a "mark paid" / "adjust amount" action targets via next_due_date.
+export function getNextBillDueDate(bill: Bill): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let year = today.getFullYear();
+  let month = today.getMonth();
+  let dueDate = getDayOfMonth(year, month, bill.due_day);
+
+  if (dueDate < today) {
+    month++;
+    if (month > 11) { month = 0; year++; }
+    dueDate = getDayOfMonth(year, month, bill.due_day);
+  }
+
+  return dueDate;
 }
 
 export function getUpcomingBills(bills: Bill[], days: number = 7): Bill[] {

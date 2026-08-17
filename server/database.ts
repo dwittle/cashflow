@@ -37,7 +37,10 @@ export function initDatabase(): void {
       name TEXT NOT NULL,
       amount REAL NOT NULL,
       due_day INTEGER NOT NULL,
-      is_active INTEGER DEFAULT 1
+      is_active INTEGER DEFAULT 1,
+      next_due_date TEXT,
+      next_amount REAL,
+      next_paid INTEGER DEFAULT 0
     )
   `);
 
@@ -54,6 +57,22 @@ export function initDatabase(): void {
 
   try {
     db.exec('ALTER TABLE adjustments ADD COLUMN is_set_balance INTEGER DEFAULT 0');
+  } catch {
+    // column already exists
+  }
+
+  try {
+    db.exec('ALTER TABLE bills ADD COLUMN next_due_date TEXT');
+  } catch {
+    // column already exists
+  }
+  try {
+    db.exec('ALTER TABLE bills ADD COLUMN next_amount REAL');
+  } catch {
+    // column already exists
+  }
+  try {
+    db.exec('ALTER TABLE bills ADD COLUMN next_paid INTEGER DEFAULT 0');
   } catch {
     // column already exists
   }

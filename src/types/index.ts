@@ -14,6 +14,11 @@ export interface Bill {
   amount: number;
   due_day: number;
   is_active: number;
+  // Override applied to a single upcoming occurrence (identified by next_due_date),
+  // without changing the recurring `amount`/schedule used for all other months.
+  next_due_date?: string | null;
+  next_amount?: number | null;
+  next_paid?: number;
 }
 
 export interface Adjustment {

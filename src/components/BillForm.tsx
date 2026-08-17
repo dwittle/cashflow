@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bill } from '../types';
+import { getNextBillDueDate, toLocalDateStr, formatDate } from '../utils/calculations';
 
 interface Props {
   bills: Bill[];
@@ -20,6 +21,9 @@ function BillForm({ bills, onUpdate }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editState, setEditState] = useState<EditState | null>(null);
 
+  const [adjustingId, setAdjustingId] = useState<number | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !amount || !dueDay) return;
@@ -37,8 +41,9 @@ function BillForm({ bills, onUpdate }: Props) {
     onUpdate();
   };
 
-  const handleDelete = async (id: number) => {
-    await window.electron.bills.delete(id);
+  const handleDelete = async (bill: Bill) => {
+    if (!window.confirm(`Delete "${bill.name}"? This cannot be undone.`)) return;
+    await window.electron.bills.delete(bill.id!);
     onUpdate();
   };
 
@@ -71,6 +76,59 @@ function BillForm({ bills, onUpdate }: Props) {
     setEditingId(null);
     setEditState(null);
     onUpdate();
+  };
+
+  const handleMarkPaid = async (bill: Bill) => {
+    const nextDueDateStr = toLocalDateStr(getNextBillDueDate(bill));
+    await window.electron.bills.update(bill.id!, {
+      next_due_date: nextDueDateStr,
+      next_paid: 1,
+    });
+    onUpdate();
+  };
+
+  const handleUnmarkPaid = async (bill: Bill) => {
+    await window.electron.bills.update(bill.id!, {
+      next_due_date: null,
+      next_amount: null,
+      next_paid: 0,
+    });
+    onUpdate();
+  };
+
+  const startAdjustAmount = (bill: Bill) => {
+    setAdjustingId(bill.id!);
+    setAdjustAmount(String(bill.next_amount ?? bill.amount));
+  };
+
+  const cancelAdjustAmount = () => {
+    setAdjustingId(null);
+    setAdjustAmount('');
+  };
+
+  const saveAdjustAmount = async (bill: Bill) => {
+    if (!adjustAmount) return;
+    const nextDueDateStr = toLocalDateStr(getNextBillDueDate(bill));
+    await window.electron.bills.update(bill.id!, {
+      next_due_date: nextDueDateStr,
+      next_amount: parseFloat(adjustAmount),
+    });
+    setAdjustingId(null);
+    setAdjustAmount('');
+    onUpdate();
+  };
+
+  const clearAdjustedAmount = async (bill: Bill) => {
+    await window.electron.bills.update(bill.id!, { next_amount: null });
+    onUpdate();
+  };
+
+  // The stored override only applies once its date is still the bill's next
+  // upcoming occurrence — once that date passes, the next occurrence rolls
+  // forward and the override is inert (kept around, but no longer shown as active).
+  const activeOverride = (bill: Bill) => {
+    const nextDueDateStr = toLocalDateStr(getNextBillDueDate(bill));
+    return bill.next_due_date === nextDueDateStr ? bill : null;
   };
 
   return (
@@ -145,27 +203,87 @@ function BillForm({ bills, onUpdate }: Props) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="list-item-info">
-                      <div className="list-item-name">{bill.name}</div>
-                      <div className="list-item-details">
-                        Due on day {bill.due_day} of each month
-                        {!bill.is_active && ' (Inactive)'}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="list-item-info">
+                        <div className="list-item-name">{bill.name}</div>
+                        <div className="list-item-details">
+                          Due on day {bill.due_day} of each month
+                          {!bill.is_active && ' (Inactive)'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className="amount-negative">${bill.amount.toFixed(2)}</div>
+                        <div className="list-item-actions">
+                          <button className="btn btn-secondary" onClick={() => startEdit(bill)}>Edit</button>
+                          <button
+                            className={`btn ${bill.is_active ? 'btn-secondary' : 'btn-success'}`}
+                            onClick={() => handleToggleActive(bill)}
+                          >
+                            {bill.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button className="btn btn-danger" onClick={() => handleDelete(bill)}>Delete</button>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className="amount-negative">${bill.amount.toFixed(2)}</div>
-                      <div className="list-item-actions">
-                        <button className="btn btn-secondary" onClick={() => startEdit(bill)}>Edit</button>
-                        <button
-                          className={`btn ${bill.is_active ? 'btn-secondary' : 'btn-success'}`}
-                          onClick={() => handleToggleActive(bill)}
+
+                    {bill.is_active && (() => {
+                      const override = activeOverride(bill);
+                      const nextDueDate = getNextBillDueDate(bill);
+                      const isPaid = !!override?.next_paid;
+                      const adjustedAmount = !isPaid && override?.next_amount != null ? override.next_amount : null;
+
+                      return (
+                        <div
+                          style={{
+                            marginTop: '0.75rem',
+                            paddingTop: '0.75rem',
+                            borderTop: '1px solid #eee',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '0.5rem'
+                          }}
                         >
-                          {bill.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button className="btn btn-danger" onClick={() => handleDelete(bill.id!)}>Delete</button>
-                      </div>
-                    </div>
+                          <div className="list-item-details">
+                            Next due {formatDate(toLocalDateStr(nextDueDate))}
+                            {isPaid && ' — Paid'}
+                            {adjustedAmount != null && ` — Adjusted to $${adjustedAmount.toFixed(2)} (this time only)`}
+                          </div>
+
+                          {adjustingId === bill.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={adjustAmount}
+                                onChange={(e) => setAdjustAmount(e.target.value)}
+                                style={{ width: '7rem' }}
+                              />
+                              <button className="btn btn-primary" onClick={() => saveAdjustAmount(bill)}>Save</button>
+                              <button className="btn btn-secondary" onClick={cancelAdjustAmount}>Cancel</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {isPaid ? (
+                                <button className="btn btn-secondary" onClick={() => handleUnmarkPaid(bill)}>Unmark Paid</button>
+                              ) : (
+                                <>
+                                  <button className="btn btn-success" onClick={() => handleMarkPaid(bill)}>Mark Paid</button>
+                                  <button className="btn btn-secondary" onClick={() => startAdjustAmount(bill)}>
+                                    {adjustedAmount != null ? 'Edit Amount' : 'Adjust Amount'}
+                                  </button>
+                                  {adjustedAmount != null && (
+                                    <button className="btn btn-secondary" onClick={() => clearAdjustedAmount(bill)}>Reset Amount</button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </li>

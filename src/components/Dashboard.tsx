@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Income, Bill, Adjustment } from '../types';
-import { calculateProjectedBalances, getNextIncomeDate, getUpcomingBills } from '../utils/calculations';
+import { calculateProjectedBalances, getNextIncomeDate, getUpcomingBills, getNextBillDueDate, toLocalDateStr } from '../utils/calculations';
 import BalanceCalendar from './BalanceCalendar';
 
 interface Props {
@@ -105,15 +105,23 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
         <div className="card">
           <h2>Upcoming Bills (Next 7 Days)</h2>
           <ul className="list">
-            {upcomingBills.map(bill => (
-              <li key={bill.id} className="list-item">
-                <div className="list-item-info">
-                  <div className="list-item-name">{bill.name}</div>
-                  <div className="list-item-details">Due day: {bill.due_day}</div>
-                </div>
-                <div className="amount-negative">${bill.amount.toFixed(2)}</div>
-              </li>
-            ))}
+            {upcomingBills.map(bill => {
+              const isOverridden = !!bill.next_due_date && bill.next_due_date === toLocalDateStr(getNextBillDueDate(bill));
+              const isPaid = isOverridden && !!bill.next_paid;
+              const effectiveAmount = isOverridden && bill.next_amount != null ? bill.next_amount : bill.amount;
+
+              return (
+                <li key={bill.id} className="list-item">
+                  <div className="list-item-info">
+                    <div className="list-item-name">{bill.name}{isPaid && ' — Paid'}</div>
+                    <div className="list-item-details">Due day: {bill.due_day}</div>
+                  </div>
+                  <div className="amount-negative" style={isPaid ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}>
+                    ${effectiveAmount.toFixed(2)}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
