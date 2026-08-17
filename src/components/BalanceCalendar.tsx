@@ -88,9 +88,18 @@ function BalanceCalendar({ data }: Props) {
 
         {cells.map((cell, i) => {
           const textColor = cell?.entry ? cellTextColor(cell.entry.balance) : '#2c3e50';
+          const tooltip = cell?.entry
+            ? [
+                `${monthLabel.split(' ')[0]} ${cell.day}, ${viewYear} — Balance: $${cell.entry.balance.toFixed(2)}`,
+                ...(cell.entry.transactions.length > 0
+                  ? cell.entry.transactions.map(t => `${t.name}: ${t.amount >= 0 ? '+' : ''}$${t.amount.toFixed(2)}`)
+                  : ['No transactions'])
+              ].join('\n')
+            : undefined;
           return (
             <div
               key={i}
+              title={tooltip}
               style={{
                 minHeight: '72px',
                 padding: '0.35rem 0.4rem',
