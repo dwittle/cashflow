@@ -27,7 +27,7 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
 
   const currentBalance = projectedData[0]?.balance || startingBalance;
   const nextIncome = getNextIncomeDate(income);
-  const upcomingBills = getUpcomingBills(bills, 7);
+  const upcomingBills = getUpcomingBills(bills, 14);
 
   const minBalance = Math.min(...projectedData.map(d => d.balance));
   const hasLowBalance = minBalance < 100;
@@ -50,7 +50,7 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
         </div>
 
         <div className="stat-card">
-          <div className="stat-label">Upcoming Bills (7 days)</div>
+          <div className="stat-label">Upcoming Bills (14 days)</div>
           <div className="stat-value" style={{ fontSize: '1.25rem' }}>
             {upcomingBills.length} bills
           </div>
@@ -103,7 +103,7 @@ function Dashboard({ startingBalance, setStartingBalance, income, bills, adjustm
 
       {upcomingBills.length > 0 && (
         <div className="card">
-          <h2>Upcoming Bills (Next 7 Days)</h2>
+          <h2>Upcoming Bills (Next 14 Days)</h2>
           <ul className="list">
             {upcomingBills.map(bill => {
               const isOverridden = !!bill.next_due_date && bill.next_due_date === toLocalDateStr(getNextBillDueDate(bill));

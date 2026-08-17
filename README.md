@@ -144,7 +144,7 @@ cashflow/
 1. Go to the "Dashboard" tab
 2. Set your starting balance
 3. View the 90-day balance projection chart and the balance calendar
-4. See upcoming bills (next 7 days) and the next income date
+4. See upcoming bills (next 14 days) and the next income date
 
 ## Data Storage
 
