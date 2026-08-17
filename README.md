@@ -69,6 +69,7 @@ npm run dev:server
 npm run build:service   # compiles server/ (tsc) and builds the production browser bundle
 npm run start:server    # runs the compiled server directly, at http://localhost:3001
 ```
+This runs in the foreground — press `Ctrl+C` in that terminal to stop it. While it's running, `http://localhost:3001` responds; once stopped, requests to it fail to connect.
 
 ### Installing as a Windows service
 Run as Administrator so it starts automatically and keeps running in the background:
@@ -79,6 +80,15 @@ This registers and starts a Windows service named "CashFlow Tracker" that serves
 ```bash
 npm run service:uninstall
 ```
+
+#### Checking status, stopping, and starting the service
+There's no npm script for this — use Windows' own service tooling (PowerShell, as Administrator):
+```powershell
+Get-Service "CashFlow Tracker"    # shows Running / Stopped
+Stop-Service "CashFlow Tracker"
+Start-Service "CashFlow Tracker"
+```
+Or open `services.msc` and find "CashFlow Tracker" in the list, where you can check its status and start/stop/restart it from the GUI. Note that `service:uninstall` stops and removes the service entirely — use `Stop-Service`/`Start-Service` if you just want to pause it temporarily.
 
 ## Testing
 
