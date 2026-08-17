@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
-import { initDatabase, incomeOps, billOps, adjustmentOps, closeDatabase } from './database';
+import { initDatabase, incomeOps, billOps, adjustmentOps, dataOps, closeDatabase } from './database';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -62,4 +62,8 @@ function setupIPC() {
   ipcMain.handle('adjustments:getAll', () => adjustmentOps.getAll());
   ipcMain.handle('adjustments:create', (_, adjustment) => adjustmentOps.create(adjustment));
   ipcMain.handle('adjustments:delete', (_, id) => adjustmentOps.delete(id));
+
+  // Backup/restore handlers
+  ipcMain.handle('data:exportAll', () => dataOps.exportAll());
+  ipcMain.handle('data:importAll', (_, data) => dataOps.importAll(data));
 }

@@ -1,5 +1,5 @@
 // Mock Electron API for browser development
-import { Income, Bill, Adjustment, ElectronAPI } from './types';
+import { Income, Bill, Adjustment, BackupData, ElectronAPI } from './types';
 
 // In-memory storage
 let incomeData: Income[] = [];
@@ -104,6 +104,29 @@ export const mockElectronAPI: ElectronAPI = {
     },
     delete: async (id) => {
       adjustmentsData = adjustmentsData.filter(a => a.id !== id);
+      saveToStorage();
+      return Promise.resolve();
+    }
+  },
+  data: {
+    exportAll: async () => {
+      return Promise.resolve({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        income: [...incomeData],
+        bills: [...billsData],
+        adjustments: [...adjustmentsData]
+      });
+    },
+    importAll: async (data: BackupData) => {
+      incomeData = [...data.income];
+      billsData = [...data.bills];
+      adjustmentsData = [...data.adjustments];
+      idCounter = {
+        income: Math.max(0, ...incomeData.map(i => i.id ?? 0)) + 1,
+        bills: Math.max(0, ...billsData.map(b => b.id ?? 0)) + 1,
+        adjustments: Math.max(0, ...adjustmentsData.map(a => a.id ?? 0)) + 1
+      };
       saveToStorage();
       return Promise.resolve();
     }

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { Income, Bill, Adjustment } from '../src/types';
+import { Income, Bill, Adjustment, BackupData } from '../src/types';
 
 let db: Database.Database;
 
@@ -160,6 +160,53 @@ export const adjustmentOps = {
 
   delete(id: number): void {
     db.prepare('DELETE FROM adjustments WHERE id = ?').run(id);
+  }
+};
+
+// Full-database backup/restore
+export const dataOps = {
+  exportAll(): BackupData {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      income: incomeOps.getAll(),
+      bills: billOps.getAll(),
+      adjustments: adjustmentOps.getAll()
+    };
+  },
+
+  // Replaces every row in income/bills/adjustments with the given snapshot,
+  // preserving original ids. Runs as one transaction so a bad import can't
+  // leave the database half-replaced.
+  importAll(data: BackupData): void {
+    const insertIncome = db.prepare(
+      'INSERT INTO income (id, name, amount, frequency, start_date, fixed_dates, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    const insertBill = db.prepare(
+      'INSERT INTO bills (id, name, amount, due_day, is_active, next_due_date, next_amount, next_paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    const insertAdjustment = db.prepare(
+      'INSERT INTO adjustments (id, name, amount, date, is_set_balance, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+
+    const runImport = db.transaction((data: BackupData) => {
+      db.prepare('DELETE FROM income').run();
+      db.prepare('DELETE FROM bills').run();
+      db.prepare('DELETE FROM adjustments').run();
+
+      data.income.forEach(inc => insertIncome.run(
+        inc.id ?? null, inc.name, inc.amount, inc.frequency, inc.start_date || null, inc.fixed_dates || null, inc.is_active
+      ));
+      data.bills.forEach(bill => insertBill.run(
+        bill.id ?? null, bill.name, bill.amount, bill.due_day, bill.is_active,
+        bill.next_due_date ?? null, bill.next_amount ?? null, bill.next_paid ?? 0
+      ));
+      data.adjustments.forEach(adj => insertAdjustment.run(
+        adj.id ?? null, adj.name, adj.amount, adj.date, adj.is_set_balance ?? 0, adj.created_at || new Date().toISOString()
+      ));
+    });
+
+    runImport(data);
   }
 };
 

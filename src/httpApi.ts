@@ -1,4 +1,4 @@
-import { Income, Bill, Adjustment, ElectronAPI } from './types';
+import { Income, Bill, Adjustment, BackupData, ElectronAPI } from './types';
 
 async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -27,5 +27,9 @@ export const httpApi: ElectronAPI = {
     getAll: () => req<Adjustment[]>('GET', '/api/adjustments'),
     create: (adjustment) => req<number>('POST', '/api/adjustments', adjustment),
     delete: (id) => req<void>('DELETE', `/api/adjustments/${id}`)
+  },
+  data: {
+    exportAll: () => req<BackupData>('GET', '/api/data/export'),
+    importAll: (data) => req<void>('POST', '/api/data/import', data)
   }
 };

@@ -45,6 +45,14 @@ export interface DailyBalance {
   transactions: Transaction[];
 }
 
+export interface BackupData {
+  version: number;
+  exportedAt: string;
+  income: Income[];
+  bills: Bill[];
+  adjustments: Adjustment[];
+}
+
 export interface ElectronAPI {
   income: {
     getAll: () => Promise<Income[]>;
@@ -62,6 +70,12 @@ export interface ElectronAPI {
     getAll: () => Promise<Adjustment[]>;
     create: (adjustment: Omit<Adjustment, 'id' | 'created_at'>) => Promise<number>;
     delete: (id: number) => Promise<void>;
+  };
+  data: {
+    // Full snapshot of every table, for backup/transfer.
+    exportAll: () => Promise<BackupData>;
+    // Replaces all existing income/bills/adjustments with the given snapshot.
+    importAll: (data: BackupData) => Promise<void>;
   };
 }
 

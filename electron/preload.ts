@@ -18,6 +18,10 @@ const electronAPI: ElectronAPI = {
     getAll: () => ipcRenderer.invoke('adjustments:getAll'),
     create: (adjustment) => ipcRenderer.invoke('adjustments:create', adjustment),
     delete: (id) => ipcRenderer.invoke('adjustments:delete', id)
+  },
+  data: {
+    exportAll: () => ipcRenderer.invoke('data:exportAll'),
+    importAll: (data) => ipcRenderer.invoke('data:importAll', data)
   }
 };
 

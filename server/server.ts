@@ -1,11 +1,11 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import { initDatabase, incomeOps, billOps, adjustmentOps, closeDatabase } from './database';
+import { initDatabase, incomeOps, billOps, adjustmentOps, dataOps, closeDatabase } from './database';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // default 100kb is too small for a full-database import
 app.use(express.static(path.join(__dirname, '../../public')));
 
 // Income routes
@@ -101,6 +101,24 @@ app.post('/api/adjustments', (req: Request, res: Response) => {
 app.delete('/api/adjustments/:id', (req: Request, res: Response) => {
   try {
     adjustmentOps.delete(parseInt(req.params['id'] as string));
+    res.json(null);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// Backup/restore routes
+app.get('/api/data/export', (_req: Request, res: Response) => {
+  try {
+    res.json(dataOps.exportAll());
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+app.post('/api/data/import', (req: Request, res: Response) => {
+  try {
+    dataOps.importAll(req.body);
     res.json(null);
   } catch (err) {
     res.status(500).json({ error: String(err) });

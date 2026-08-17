@@ -3,10 +3,11 @@ import Dashboard from './components/Dashboard';
 import IncomeForm from './components/IncomeForm';
 import BillForm from './components/BillForm';
 import AdjustmentForm from './components/AdjustmentForm';
+import DataForm from './components/DataForm';
 import { Income, Bill, Adjustment } from './types';
 import './App.css';
 
-type View = 'dashboard' | 'income' | 'bills' | 'adjustments';
+type View = 'dashboard' | 'income' | 'bills' | 'adjustments' | 'data';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -59,6 +60,12 @@ function App() {
           >
             Adjustments
           </button>
+          <button
+            className={currentView === 'data' ? 'active' : ''}
+            onClick={() => setCurrentView('data')}
+          >
+            Data
+          </button>
         </div>
       </nav>
 
@@ -80,6 +87,9 @@ function App() {
         )}
         {currentView === 'adjustments' && (
           <AdjustmentForm adjustments={adjustments} onUpdate={loadData} />
+        )}
+        {currentView === 'data' && (
+          <DataForm income={income} bills={bills} adjustments={adjustments} onUpdate={loadData} />
         )}
       </main>
     </div>
