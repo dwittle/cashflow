@@ -46,8 +46,9 @@ function IncomeForm({ income, onUpdate }: Props) {
     onUpdate();
   };
 
-  const handleDelete = async (id: number) => {
-    await window.electron.income.delete(id);
+  const handleDelete = async (inc: Income) => {
+    if (!window.confirm(`Delete "${inc.name}"? This cannot be undone.`)) return;
+    await window.electron.income.delete(inc.id!);
     onUpdate();
   };
 
@@ -216,7 +217,7 @@ function IncomeForm({ income, onUpdate }: Props) {
                         >
                           {inc.is_active ? 'Deactivate' : 'Activate'}
                         </button>
-                        <button className="btn btn-danger" onClick={() => handleDelete(inc.id!)}>Delete</button>
+                        <button className="btn btn-danger" onClick={() => handleDelete(inc)}>Delete</button>
                       </div>
                     </div>
                   </div>

@@ -51,8 +51,9 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
     onUpdate();
   };
 
-  const handleDelete = async (id: number) => {
-    await window.electron.adjustments.delete(id);
+  const handleDelete = async (adj: Adjustment) => {
+    if (!window.confirm(`Delete "${adj.name}"? This cannot be undone.`)) return;
+    await window.electron.adjustments.delete(adj.id!);
     onUpdate();
   };
 
@@ -125,7 +126,7 @@ function AdjustmentForm({ adjustments, onUpdate }: Props) {
                   </div>
                   <button
                     className="btn btn-danger"
-                    onClick={() => handleDelete(adj.id!)}
+                    onClick={() => handleDelete(adj)}
                   >
                     Delete
                   </button>
